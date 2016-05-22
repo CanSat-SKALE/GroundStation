@@ -29,4 +29,4 @@ Graphical user interface of the SKALE Team Ground Station developed in Matlab
 
 # Compile 
 
->> mcc -v -m GroundStation.m
+    >> mcc -v -m GroundStation.m
