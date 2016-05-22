@@ -15,7 +15,7 @@ classdef Serial < handle
     end
     
     properties(Constant = true, Hidden = true)
-        MAX_RESPONSE_DELAY = 1;
+        MAX_RESPONSE_DELAY = 3;
         STATUS_UPDATE_INTERVAL = 0.1;
     end
     
@@ -190,12 +190,12 @@ classdef Serial < handle
                         hObject.callbacks.LogData(args);
                     end
                     
-                case 'ACK-COMMAND'
-                    ackMessage = ['ACK-COMMAND,', args{3}, char(13)];
-                    hObject.serialPort.Write(ackMessage, 0, length(ackMessage));
+                case 'ACK-COMMAND'                    
+                    ID          = str2double(args{2});
                     
-                otherwise
-                    
+                    if hObject.frameID.Command == ID
+                        % disable command retransmission
+                    end
             end
         end
         
