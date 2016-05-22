@@ -95,6 +95,7 @@ guidata(hObject, handles);
 
 
 function sensorDataCallback(data, handles)
+
 allData = get(handles.logTable, 'Data');
 allData = [data; allData];
 set(handles.logTable, 'Data', allData);
@@ -150,6 +151,8 @@ if strcmp(get(hObject, 'String'), 'Connect')
         set(handles.deploymentButton, 'Enable', 'on');
         set(hObject, 'String', 'Disconnect');
     catch ME
+        set(handles.statusMessage, 'String', ME.message);
+        
         disp(getReport(ME,'extended','hyperlinks','default'));
     end 
     

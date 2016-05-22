@@ -150,16 +150,13 @@ classdef Serial < handle
                     data = data(1:numBytes);
                     hObject.receivedData = [hObject.receivedData data];
                     
-                    % Split packets based on new line, char(13) \n
-                    f = find(hObject.receivedData == char(13), 1);
-                    while f
-                        message = hObject.receivedData(1:f-1);
-                        hObject.receivedData = hObject.receivedData(f + 1:end);
-                        
-                        hObject.DecodeMessage(message);
-                        
-                        f = find(hObject.receivedData == char(13), 1);
+                    % Split packets based on new line, \r or \n
+                    packets = strsplit(hObject.receivedData, {'\r', '\n'});
+                    
+                    for i = 1:(length(packets) - 1)
+                        hObject.DecodeMessage(packets{i});
                     end
+                    hObject.receivedData = packets{end};
                     
                 catch ME
                     % TODO: Connection status notify
@@ -173,7 +170,7 @@ classdef Serial < handle
             switch args{1}
                 
                 case '8099'
-                    ackMessage  = ['ACK-SENSOR,', args{3}, char(13)];
+                    ackMessage  = ['ACK-SENSOR,', args{3}, char(13), char(10)];
                     hObject.serialPort.Write(ackMessage, 0, length(ackMessage));
                     
                     ID          = str2double(args{3});
@@ -192,7 +189,7 @@ classdef Serial < handle
                     end
                     
                 case 'IMAGE'
-                    ackMessage = ['ACK-IMAGE,', args{2}, char(13)];
+                    ackMessage = ['ACK-IMAGE,', args{2}, char(13), char(10)];
                     hObject.serialPort.Write(ackMessage, 0, length(ackMessage));
                     
                     ID          = str2double(args{2});
@@ -211,7 +208,7 @@ classdef Serial < handle
                     end
                     
                 case 'LOG'
-                    ackMessage = ['ACK-LOG,', args{2}, char(13)];
+                    ackMessage = ['ACK-LOG,', args{2}, char(13), char(10)];
                     hObject.serialPort.Write(ackMessage, 0, length(ackMessage));
                     
                     ID          = str2double(args{2});
