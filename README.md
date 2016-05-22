@@ -2,7 +2,7 @@
 
 Graphical user interface of the SKALE Team Ground Station developed in Matlab
 
-# Communication Protocol
+## Communication Protocol
 
   All packets are ASCII encoded and ended by a new line, \n - ASCII 13
   
@@ -27,6 +27,6 @@ Graphical user interface of the SKALE Team Ground Station developed in Matlab
         SENT COMMAND, Command Number, Command Name, Args, ... \n
         RECV ACK-COMMAND, Command Number \n
 
-# Compile 
+## Compile 
 
     >> mcc -v -m GroundStation.m
