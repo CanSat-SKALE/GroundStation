@@ -54,9 +54,8 @@ function GroundStation_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for GroundStation
 handles.output = hObject;
-
-% CSV Read
-data = csvread('skale-dataV2.csv');
+set(handles.pictureButton, 'Enable', 'off');
+set(handles.deploymentButton, 'Enable', 'off');
 
 % Logo
 img = imread('logo.png');
@@ -74,12 +73,16 @@ axis(handles.pictureAxis, 'off', 'image');
 
 xlabel('Time (s)')
 
-handles.SerialPort = Serial; 
+% Setup Serial Ports callbacks
+callbacks = struct();
+callbacks.SensorData = {@sensorDataCallback, handles};
+
+handles.SerialPort = Serial(); 
+handles.SerialPort.SetCallbacks(callbacks);
 
 % Check every 1 second for serial ports
 handles.listPortsTimer = timer('Period',1, 'ExecutionMode','fixedSpacing',...
                                 'TimerFcn', {@updateSerialPorts, handles});
-
 start(handles.listPortsTimer)  
 
 % Update handles structure
@@ -89,11 +92,27 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 
 
+function sensorDataCallback(data, handles)
+    disp(data)
+    set(handles.logTable,'data',data);
+    
+
+
 function updateSerialPorts(hObject, eventdata, handles)
+if strcmp(get(handles.connectButton, 'String'),'Disconnect')
+    return
+end
 
 if ~isempty(handles.SerialPort.ListPorts)
+    portNumber = get(handles.serialPortsList, 'Value');
+    
+    if length(handles.SerialPort.ListPorts) < portNumber
+        set(handles.serialPortsList, 'Value', length(handles.SerialPort.ListPorts))
+    end
+    
     set(handles.serialPortsList, 'String', handles.SerialPort.ListPorts)
-else 
+else
+    set(handles.serialPortsList, 'Value', 1)
     set(handles.serialPortsList, 'String', {''})
 end
 
@@ -115,17 +134,32 @@ function connectButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if strcmp(get(hObject, 'String'), 'Connect')
-    % connect to serial port
-    set(handles.serialPortsList, 'Enable', 'off');
-    set(handles.pictureButton, 'Enable', 'on');
-    set(handles.deploymentButton, 'Enable', 'on');
-    set(hObject, 'String', 'Disconnect');
+    comPortIndex = get(handles.serialPortsList, 'Value');
+    comPortNames = get(handles.serialPortsList, 'String');
+    try
+        handles.SerialPort.Connect(comPortNames{comPortIndex}, 115200);
+        disp(comPortNames{comPortIndex});
+        set(handles.serialPortsList, 'Enable', 'off');
+        set(handles.pictureButton, 'Enable', 'on');
+        set(handles.deploymentButton, 'Enable', 'on');
+        set(hObject, 'String', 'Disconnect');
+    catch ME
+        disp(getReport(ME,'extended','hyperlinks','default'));
+    end 
+    
+    
 else
     % disconnect
-    set(hObject, 'String', 'Connect');
-    set(handles.serialPortsList, 'Enable', 'on');
-    set(handles.pictureButton, 'Enable', 'off');
-    set(handles.deploymentButton, 'Enable', 'off');
+    try
+        handles.SerialPort.Disconnect();
+        
+        set(hObject, 'String', 'Connect');
+        set(handles.serialPortsList, 'Enable', 'on');
+        set(handles.pictureButton, 'Enable', 'off');
+        set(handles.deploymentButton, 'Enable', 'off');
+    catch ME
+         disp(getReport(ME,'extended','hyperlinks','default'));
+    end
 end
 
 
@@ -162,7 +196,6 @@ function exportButton_Callback(hObject, eventdata, handles)
 
 if file
     sensorData=get(handles.logTable,'Data');
-    
     csvwrite(fullfile(path, file), sensorData);
 end
 
@@ -245,4 +278,6 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+handles.SerialPort.delete();
 stop(timerfind);
+
