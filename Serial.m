@@ -182,7 +182,13 @@ classdef Serial < handle
                        isfield(hObject.callbacks, 'SensorData')
                    
                         hObject.frameID.Sensor = ID;
-                        hObject.callbacks.SensorData(args);
+                        
+                        % Call callback with predefined arguments
+                        if iscell(hObject.callbacks.SensorData)
+                            hObject.callbacks.SensorData{1}(args, hObject.callbacks.SensorData{2:end});
+                        else
+                            hObject.callbacks.SensorData(args);
+                        end
                     end
                     
                 case 'IMAGE'
