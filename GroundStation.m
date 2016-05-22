@@ -22,7 +22,7 @@ function varargout = GroundStation(varargin)
 
 % Edit the above text to modify the response to help GroundStation
 
-% Last Modified by GUIDE v2.5 22-May-2016 19:11:18
+% Last Modified by GUIDE v2.5 22-May-2016 21:25:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -85,6 +85,8 @@ handles.listPortsTimer = timer('Period',1, 'ExecutionMode','fixedSpacing',...
                                 'TimerFcn', {@updateSerialPorts, handles});
 start(handles.listPortsTimer)  
 
+
+set(handles.logTable, 'Data', [])
 % Update handles structure
 guidata(hObject, handles);
 
@@ -93,9 +95,13 @@ guidata(hObject, handles);
 
 
 function sensorDataCallback(data, handles)
-    disp(data)
-    set(handles.logTable,'data',data);
-    
+allData = get(handles.logTable, 'Data');
+allData = [data; allData];
+set(handles.logTable, 'Data', allData);
+
+%update plots
+plot_checkboxes(0, 0, handles);
+
 
 
 function updateSerialPorts(hObject, eventdata, handles)
@@ -138,7 +144,7 @@ if strcmp(get(hObject, 'String'), 'Connect')
     comPortNames = get(handles.serialPortsList, 'String');
     try
         handles.SerialPort.Connect(comPortNames{comPortIndex}, 115200);
-        disp(comPortNames{comPortIndex});
+        
         set(handles.serialPortsList, 'Enable', 'off');
         set(handles.pictureButton, 'Enable', 'on');
         set(handles.deploymentButton, 'Enable', 'on');
@@ -238,7 +244,9 @@ for i = 1:length(checkboxes)
     end
 end
 
-data = csvread('skale-dataV2.csv');
+dataChar = get(handles.logTable,'Data');
+data = str2double(dataChar);
+
 time = data(:,2);
 if (find(state))
     plot(handles.mainPlot,time, data(:, find(state) + 3));
@@ -280,4 +288,3 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 
 handles.SerialPort.delete();
 stop(timerfind);
-
