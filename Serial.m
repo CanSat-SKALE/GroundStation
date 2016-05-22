@@ -91,10 +91,10 @@ classdef Serial < handle
             end
         end
         
-        function SetCallbacks(hObject, callbacks)
-            validateattributes(callbacks, {'struct'}, {'scalar'});
+        function SetCallbacks(hObject, packetCallbacks)
+            validateattributes(packetCallbacks, {'struct'}, {'scalar'});
             
-            hObject.calbacks = callbacks;
+            hObject.callbacks = packetCallbacks;
         end
         
         function status = IsConnected(hObject)
@@ -125,11 +125,11 @@ classdef Serial < handle
             if numBytes
                 try
                     % Add received data to the buffer
-                    data = hObject.readBuffer.char;
+                    data = char(hObject.readBuffer.uint8);
                     data = data(1:numBytes);
                     hObject.receivedData = [hObject.receivedData data];
                     
-                    % Split packets based on new line, char(13)
+                    % Split packets based on new line, char(13) \n
                     f = find(hObject.receivedData == char(13), 1);
                     while f
                         message = hObject.receivedData(1:f-1);
@@ -191,7 +191,7 @@ classdef Serial < handle
                     end
                     
                 case 'ACK-COMMAND'
-                    ackMessage = ['ACK-SENSOR,', args{3}, char(13)];
+                    ackMessage = ['ACK-COMMAND,', args{3}, char(13)];
                     hObject.serialPort.Write(ackMessage, 0, length(ackMessage));
                     
                 otherwise
