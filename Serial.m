@@ -201,7 +201,13 @@ classdef Serial < handle
                        isfield(hObject.callbacks, 'ImageData')
                    
                         hObject.frameID.Image = ID;
-                        hObject.callbacks.ImageData(args);
+                        
+                        % Call callback with predefined arguments
+                        if iscell(hObject.callbacks.ImageData)
+                            hObject.callbacks.ImageData{1}(args, hObject.callbacks.ImageData{2:end});
+                        else
+                            hObject.callbacks.ImageData(args);
+                        end
                     end
                     
                 case 'LOG'
@@ -214,6 +220,13 @@ classdef Serial < handle
                        isfield(hObject.callbacks, 'LogData')
                    
                         hObject.frameID.Log = ID;
+                        
+                        % Call callback with predefined arguments
+                        if iscell(hObject.callbacks.LogData)
+                            hObject.callbacks.LogData{1}(args, hObject.callbacks.LogData{2:end});
+                        else
+                            hObject.callbacks.LogData(args);
+                        end
                         hObject.callbacks.LogData(args);
                     end
                     
