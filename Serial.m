@@ -103,7 +103,7 @@ classdef Serial < handle
                 hObject.serialPort.Open();
                 
                 % Test port with a dummy write
-                hObject.serialPort.Write(0, 0, 1);
+                % hObject.serialPort.Write(0, 0, 1);
             else
                 ME = MException('Serial:portAlreadyOpened', ...
                     'Serial already conected to port %s', ...
@@ -235,6 +235,11 @@ classdef Serial < handle
                     end
             end
         end
+        
+        % Base 64
+        %System.Convert.ToBase64String([1 2 3 4])
+        %n = System.Convert.FromBase64String('AQIDBA==')
+        %n.uint8
         
         function Disconnect(hObject)
             if hObject.serialPort.IsOpen
