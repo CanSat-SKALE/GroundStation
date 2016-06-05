@@ -1,4 +1,4 @@
-# ![Logo](https://raw.githubusercontent.com/CanSat-SKALE/GroundStation/master/logo.png) Team Ground Station Software
+# Ground Station Software
 
 Graphical user interface of the SKALE Team Ground Station developed in Matlab
 
