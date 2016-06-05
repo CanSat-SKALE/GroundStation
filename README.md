@@ -2,9 +2,9 @@
 
 Graphical user interface of the SKALE Team Ground Station developed in Matlab
 
-## Communication Protocol
+### Communication Protocol
 
-  All packets are ASCII encoded and ended by a new line, \n - ASCII 13
+  All packets are ASCII encoded and ended by a new line character \n. The application splits packet data on both ASCII 13 and ASCII 10 characters, ACK packets also use this sequence.
   
   List of packets sent by Glider and acknowledged by Ground Station:
   
@@ -27,6 +27,6 @@ Graphical user interface of the SKALE Team Ground Station developed in Matlab
         ->  COMMAND, Command Number, Command Name, Args, ... \n
         <-  ACK-COMMAND, Command Number \n
 
-## Compile 
+### Compile 
 
     >> mcc -v -m GroundStation.m
