@@ -22,7 +22,7 @@ function varargout = GroundStation(varargin)
 
 % Edit the above text to modify the response to help GroundStation
 
-% Last Modified by GUIDE v2.5 22-May-2016 21:25:28
+% Last Modified by GUIDE v2.5 05-Jun-2016 14:10:39
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,18 +90,49 @@ set(handles.logTable, 'Data', [])
 % Update handles structure
 guidata(hObject, handles);
 
+% Set mission time to 00:00
+set(handles.missionTime, 'String', '00:00')
+
 % UIWAIT makes GroundStation wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
-function sensorDataCallback(data, handles)
 
+function sensorDataCallback(data, handles)
 allData = get(handles.logTable, 'Data');
 allData = [data; allData];
 set(handles.logTable, 'Data', allData);
 
+% Update Mission time
+timeLogging = str2double(data{2});
+missionTimeCntMinutes = floor(timeLogging/60);
+missionTimeCntSeconds = timeLogging - 60*missionTimeCntMinutes;
+
+if missionTimeCntMinutes >=9
+    missionTimeCntMinutes_string = num2str(missionTimeCntMinutes);
+else
+    missionTimeCntMinutes_string = strcat('0',num2str(missionTimeCntMinutes));
+end
+if missionTimeCntSeconds >=9
+    missionTimeCntSeconds_string = num2str(missionTimeCntSeconds);
+else
+    missionTimeCntSeconds_string = strcat('0',num2str(missionTimeCntSeconds));
+end    
+set(handles.missionTime, 'String',  strcat(missionTimeCntMinutes_string, ':' ,missionTimeCntSeconds_string));
+
 %update plots
 plot_checkboxes(0, 0, handles);
+
+%update Mission Bar
+state = data{16}
+if (str2double(state)>=4) 
+    state = '4';
+end
+state_previous = allData{2,16}
+if (strcmp(state,state_previous) == 0)
+    progressbar(handles.axesProgressBar,  int32(str2double(state)));
+end
+
 
 
 
@@ -146,6 +177,7 @@ if strcmp(get(hObject, 'String'), 'Connect')
     try
         handles.SerialPort.Connect(comPortNames{comPortIndex}, 115200);
         
+        set(handles.missionTime, 'String', '00:00')
         set(handles.serialPortsList, 'Enable', 'off');
         set(handles.pictureButton, 'Enable', 'on');
         set(handles.deploymentButton, 'Enable', 'on');
@@ -291,3 +323,11 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 
 handles.SerialPort.delete();
 stop(timerfind);
+
+
+
+
+
+
+
+
