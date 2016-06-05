@@ -22,6 +22,12 @@ classdef Serial < handle
     %   + Command Packet
     %       SENT COMMAND, Command Number, Command Name, Args, ... \n
     %       RECV ACK-COMMAND, Command Number \n
+    %
+    %         
+    % Base 64
+    % System.Convert.ToBase64String([1 2 3 4])
+    % n = System.Convert.FromBase64String('AQIDBA==')
+    % n.uint8
     
     properties(Hidden = true)
         serialPort;
@@ -33,6 +39,9 @@ classdef Serial < handle
         
         callbacks;
         frameID;
+        
+        statusTimer;
+        sendQueue;
     end
     
     properties(Constant = true, Hidden = true)
@@ -44,9 +53,25 @@ classdef Serial < handle
     %   SensorData;         - Sensor data packet, starts with team ID
     %   ImageData;          - Image frame packet, starts with IMG
     %   LogData;            - Log message packet, starts with LOG
-    %   ConnectionStatus;   - Serial port status update, connnection lost
-    %   GliderStatus;       - Update glider connection status
+    %   Error;              - Error, communication of packet decoding
+
         
+    methods (Static)
+        % Converts input argument to string
+        function str = toString(data)
+            if ischar(data)
+                str = data;
+            elseif isscalar(data)
+                str = num2str(data);
+            elseif iscell(data)
+                s   = cellfun(@Serial.toString, data, 'UniformOutput', 0);
+                str = strjoin(s, ', ');
+            else
+                str = 'wrong type';
+            end
+        end
+    end
+    
     methods
         function hObject = Serial()
             
@@ -63,13 +88,17 @@ classdef Serial < handle
             hObject.receivedData= [];
             
             % Timer setup
-            % TODO
+            hObject.statusTimer = timer('ExecutionMode', 'FixedRate', ...
+                                        'Name', 'PeriodicCallback', ...
+                                        'Period', Serial.STATUS_UPDATE_INTERVAL, ...
+                                        'TimerFcn', @hObject.PeriodicCallback);
+            start(hObject.statusTimer);
             
             hObject.lastActivity            = 0;
             
-            hObject.callbacks               = struct();
-            
-            hObject.frameID                 = struct();
+            hObject.callbacks               = struct();            
+            hObject.frameID                 = struct();            
+            hObject.sendQueue               = struct([]);
         end
         
         function names = ListPorts(hObject)
@@ -230,16 +259,57 @@ classdef Serial < handle
                 case 'ACK-COMMAND'                    
                     ID          = str2double(args{2});
                     
-                    if hObject.frameID.Command == ID
-                        % disable command retransmission
+                    if isfield(hObject.sendQueue, 'ID')
+
+                        for i = 1:length(hObject.sendQueue)
+                            if hObject.sendQueue(i).ID == ID
+                                % remove entry
+                                hObject.sendQueue = [hObject.sendQueue(1:i-1), ...
+                                                    hObject.sendQueue(i+1:end)];
+                                
+                                break;
+                            end
+                        end
                     end
             end
         end
         
-        % Base 64
-        %System.Convert.ToBase64String([1 2 3 4])
-        %n = System.Convert.FromBase64String('AQIDBA==')
-        %n.uint8
+        function SendCommand(hObject, commandName, varargin)
+            % Auto Increment Command ID
+            hObject.frameID.Command = hObject.frameID.Command + 1;
+            
+            % Create packet from parts
+            packet = [{'COMMAND', hObject.frameID.Command, commandName}, varargin];
+            packetData = [Serial.toString(packet), char(13), char(10)];
+            
+            hObject.serialPort.Write(packetData, 0, length(packetData));
+            
+            % Add packet to queue
+            hObject.sendQueue(end+1).packetData = packetData;
+            hObject.sendQueue(end).ID           = hObject.frameID.Command;
+            hObject.sendQueue(end).time         = clock;
+        end
+        
+        function PeriodicCallback(hObject, ~, ~)
+            
+            % Magic - resend commands
+            if isfield(hObject.sendQueue, 'time')
+                dt = zeros(1, length(hObject.sendQueue));
+                
+                for i = 1:length(hObject.sendQueue)
+                    dt(i)   = etime(clock, hObject.sendQueue(i).time);
+                end
+                
+                if ~isempty(dt)
+                    [~, i]  = max(dt);
+
+                    % resend an update time
+                    packetData = hObject.sendQueue(i).packetData;
+                    hObject.serialPort.Write(packetData, 0, length(packetData));
+                    hObject.sendQueue(i).time = clock;
+                end
+            end
+        end
         
         function Disconnect(hObject)
             if hObject.serialPort.IsOpen
@@ -254,6 +324,9 @@ classdef Serial < handle
             
             hObject.serialPort.Dispose();
             hObject.serialPort.delete();
+            
+            stop(hObject.statusTimer);
+            delete(hObject.statusTimer);
         end
     end
     
