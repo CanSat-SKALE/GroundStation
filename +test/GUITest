@@ -1,0 +1,42 @@
+classdef GUITest < matlab.unittest.TestCase
+    
+    properties
+        glider;
+    end
+    
+    methods(TestMethodSetup)
+        % Method called before each test case - method with attribute Test
+        function setupConnection(testCase)
+            testCase.glider = test.Glider('COM1', 115200);
+        end
+    end
+    
+    methods(TestMethodTeardown)
+        % Method called after each test case - method with attribute Test
+        function teardownConnection(testCase)
+            testCase.glider.Disconnect();
+            testCase.glider.delete();
+        end
+    end
+    
+    methods (Test)
+        
+        % Long test using sensor packets
+        function testContinuous(testCase)
+            input('Start the compiled version of Ground Station software, connect to COM2, and then press enter in MATLAB to continue', 's');
+        
+            testCase.glider.clearReceiveBuffer();
+            
+            for i=1:200000
+                fprintf(1, 'Test %d of %d', i, 200000);
+                
+                testCase.glider.sendPacketString(strcat('8099,', int2str(i),',',int2str(i),',400,6.5159, 11.736 ,31.748 ,4.5154,48.174,19.355,401.19,5,11.052,1,20,5'));
+                
+                pause(0.1);
+                
+                expectAck = {'ACK-SENSOR', int2str(i)};
+                testCase.verifyEqual(testCase.glider.recvPacketCell, expectAck);
+            end   
+        end
+    end
+end
