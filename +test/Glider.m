@@ -70,6 +70,7 @@ classdef Glider < handle
             if length(packets) > 1
                 packet = strtrim(strsplit(packets{1}, ','));
                 hObject.receivedData = [packets{2:end}];
+               
             end            
         end
         

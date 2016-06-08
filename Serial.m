@@ -119,7 +119,7 @@ classdef Serial < handle
                 hObject.frameID.Sensor          = NaN;
                 hObject.frameID.Image           = NaN;
                 hObject.frameID.Log             = NaN;
-                hObject.frameID.Command         = floor(rand * 100);
+                hObject.frameID.Command         = 0;
                 
                 hObject.lastActivity            = 0;
                 
@@ -173,24 +173,23 @@ classdef Serial < handle
             end
             
             if numBytes
-                try
-                    % Add received data to the buffer
-                    data = char(hObject.readBuffer.uint8);
-                    data = data(1:numBytes);
-                    hObject.receivedData = [hObject.receivedData data];
-                    
-                    % Split packets based on new line, \r or \n
-                    packets = strsplit(hObject.receivedData, {'\r', '\n'});
-                    
-                    for i = 1:(length(packets) - 1)
+                % Add received data to the buffer
+                data = char(hObject.readBuffer.uint8);
+                data = data(1:numBytes);
+                hObject.receivedData = [hObject.receivedData data];
+                
+                % Split packets based on new line, \r or \n
+                packets = strsplit(hObject.receivedData, {'\r', '\n'});
+                
+                for i = 1:(length(packets) - 1)
+                    try
                         hObject.DecodeMessage(packets{i});
+                    catch ME
+                        % TODO: Connection status notify
+                        disp(getReport(ME,'extended','hyperlinks','default'));
                     end
-                    hObject.receivedData = packets{end};
-                    
-                catch ME
-                    % TODO: Connection status notify
-                    disp(getReport(ME,'extended','hyperlinks','default'));
                 end
+                hObject.receivedData = packets{end};
             end
         end
         
@@ -291,25 +290,34 @@ classdef Serial < handle
         end
         
         function PeriodicCallback(hObject, ~, ~)
-            
-            % Magic - resend commands
-            if isfield(hObject.sendQueue, 'time')
-                dt = zeros(1, length(hObject.sendQueue));
-                
-                for i = 1:length(hObject.sendQueue)
-                    dt(i)   = etime(clock, hObject.sendQueue(i).time);
+            try
+                if ~hObject.IsConnected()
+                    return
                 end
                 
-                if ~isempty(dt)
-                    [~, i]  = max(dt);
-
-                    % resend an update time
-                    packetData = hObject.sendQueue(i).packetData;
-                    hObject.serialPort.Write(packetData, 0, length(packetData));
-                    hObject.sendQueue(i).time = clock;
+                % Magic - resend commands
+                if isfield(hObject.sendQueue, 'time')
+                    dt = zeros(1, length(hObject.sendQueue));
+                    
+                    for i = 1:length(hObject.sendQueue)
+                        dt(i)   = etime(clock, hObject.sendQueue(i).time);
+                    end
+                    
+                    if ~isempty(dt)
+                        [~, i]  = max(dt);
+                        
+                        % resend an update time
+                        packetData = hObject.sendQueue(i).packetData;
+                        hObject.serialPort.Write(packetData, 0, length(packetData));
+                        hObject.sendQueue(i).time = clock;
+                    end
                 end
+            catch ME
+                % TODO: Connection status notify
+                disp(getReport(ME,'extended','hyperlinks','default'));
             end
         end
+        
         
         function Disconnect(hObject)
             if hObject.serialPort.IsOpen

@@ -22,7 +22,7 @@ function varargout = GroundStation(varargin)
 
 % Edit the above text to modify the response to help GroundStation
 
-% Last Modified by GUIDE v2.5 05-Jun-2016 14:10:39
+% Last Modified by GUIDE v2.5 06-Jun-2016 18:10:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -101,19 +101,22 @@ set(handles.missionTime, 'String', '00:00')
 function sensorDataCallback(data, handles)
 allData = get(handles.logTable, 'Data');
 allData = [data; allData];
+
 set(handles.logTable, 'Data', allData);
+data
+dlmwrite('autosave.csv', str2double(data), '-append');
 
 % Update Mission time
 timeLogging = str2double(data{2});
 missionTimeCntMinutes = floor(timeLogging/60);
 missionTimeCntSeconds = timeLogging - 60*missionTimeCntMinutes;
 
-if missionTimeCntMinutes >=9
+if missionTimeCntMinutes >9
     missionTimeCntMinutes_string = num2str(missionTimeCntMinutes);
 else
     missionTimeCntMinutes_string = strcat('0',num2str(missionTimeCntMinutes));
 end
-if missionTimeCntSeconds >=9
+if missionTimeCntSeconds >9
     missionTimeCntSeconds_string = num2str(missionTimeCntSeconds);
 else
     missionTimeCntSeconds_string = strcat('0',num2str(missionTimeCntSeconds));
@@ -124,14 +127,14 @@ set(handles.missionTime, 'String',  strcat(missionTimeCntMinutes_string, ':' ,mi
 plot_checkboxes(0, 0, handles);
 
 %update Mission Bar
-state = data{16}
-if (str2double(state)>=4) 
-    state = '4';
-end
-state_previous = allData{2,16}
-if (strcmp(state,state_previous) == 0)
-    progressbar(handles.axesProgressBar,  int32(str2double(state)));
-end
+% state = data{16}
+% if (str2double(state)>=4) 
+%     state = '4';
+% end
+% state_previous = allData{2,16}
+% if (strcmp(state,state_previous) == 0)
+%     progressbar(handles.axesProgressBar,  int32(str2double(state)));
+% end
 
 
 
@@ -235,10 +238,8 @@ function exportButton_Callback(hObject, eventdata, handles)
 
 [file, path] = uiputfile('*.csv','Save Flight Data');
 
-if file
-    sensorData=get(handles.logTable,'Data');
-    csvwrite(fullfile(path, file), sensorData);
-end
+sensorData=get(handles.logTable,'Data');
+dlmwrite(fullfile(path, file), str2double(sensorData));
 
 
 % --- Executes on button press in pushbutton8.
@@ -253,7 +254,7 @@ function deploymentButton_Callback(hObject, eventdata, handles)
 % hObject    handle to deploymentButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+handles.SerialPort.SendCommand('FORCE-DEPLOYMENT');
 
 % --- Executes on button press in pictureButton.
 function pictureButton_Callback(hObject, eventdata, handles)
@@ -293,18 +294,17 @@ end
 
 
 
-function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
+function logMCU_Callback(hObject, eventdata, handles)
+% hObject    handle to logMCU (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
+% Hints: get(hObject,'String') returns contents of logMCU as text
+%        str2double(get(hObject,'String')) returns contents of logMCU as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
+function logMCU_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to logMCU (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -331,3 +331,11 @@ stop(timerfind);
 
 
 
+
+
+% --- Executes on button press in clcPlot.
+function clcPlot_Callback(hObject, eventdata, handles)
+% hObject    handle to clcPlot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+ cla(handles.mainPlot,'reset')

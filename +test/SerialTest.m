@@ -40,9 +40,46 @@ classdef SerialTest < matlab.unittest.TestCase
             testCase.verifyEqual(testCase.glider.recvPacketCell, expectAck);
         end
         
-        function testImaginarySolution(testCase)
-            testCase.verifyEqual(2,2);
+        function testForceDeployment(testCase)
+          
+            testCase.glider.clearReceiveBuffer();
+            testCase.serial.SendCommand('FORCE-DEPLOYMENT');
+            
+            pause(0.1);
+            
+            expectPacket = {'COMMAND', '1', 'FORCE-DEPLOYMENT'};
+            testCase.verifyEqual(testCase.glider.recvPacketCell, expectPacket);
+            %testCase.verifyEqual(2,2);
         end
+        
+        
+        
+%          function testForceDeployment2(testCase)
+%           
+%             testCase.glider.clearReceiveBuffer();
+%             testCase.serial.SendCommand('FORCE-DEPLOYMENT');
+%             testCase.serial.SendCommand('FORCE-DEPLOYMENT');
+%             pause(0.5);
+%             
+%             expectPacket1 = {'COMMAND', '1', 'FORCE-DEPLOYMENT'};
+%             expectPacket2 = {'COMMAND', '2', 'FORCE-DEPLOYMENT'};
+%             testCase.verifyEqual(testCase.glider.recvPacketCell, expectPacket1);
+%             testCase.verifyEqual(testCase.glider.recvPacketCell, expectPacket2);
+%             
+%          end
+
+         function testContinuous(testCase)
+            testCase.glider.clearReceiveBuffer();
+            for i=1:200000
+                testCase.glider.sendPacketString(strcat('8099,', int2str(i),',',int2str(i),',400,6.5159, 11.736 ,31.748 ,4.5154,48.174,19.355,401.19,5,11.052,1,20,5'));
+                pause(0.1);
+                
+                expectAck = {'ACK-SENSOR', int2str(i)};
+                testCase.verifyEqual(testCase.glider.recvPacketCell, expectAck);
+            end   
+        end
+        
+         
     end
     
 end
